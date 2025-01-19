@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"container/heap"
 	"errors"
 	"fmt"
 	"math"
@@ -83,6 +84,48 @@ func isPointValid(p Point, rows, columns int, maze [][]int) bool {
 	return p.x >= 0 && p.x < rows && p.y >= 0 && p.y < columns && maze[p.x][p.y] != 0
 }
 
+type PriorityQueueItem struct {
+	point    Point
+	priority int
+	index    int
+}
+
+type PriorityQueue []*PriorityQueueItem
+
+func (pq *PriorityQueue) Len() int {
+	return len(*pq)
+}
+
+func (pq *PriorityQueue) Less(i, j int) bool {
+	return (*pq)[i].priority < (*pq)[j].priority
+}
+
+func (pq *PriorityQueue) Swap(i, j int) {
+	(*pq)[i], (*pq)[j] = (*pq)[j], (*pq)[i]
+	(*pq)[i].index = i
+	(*pq)[j].index = j
+}
+
+func (pq *PriorityQueue) Push(x interface{}) {
+	item := x.(*PriorityQueueItem)
+	item.index = len(*pq)
+	*pq = append(*pq, item)
+}
+
+func (pq *PriorityQueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	item.index = -1
+	*pq = old[0 : n-1]
+	return item
+}
+
+func (pq *PriorityQueue) Update(item *PriorityQueueItem, priority int) {
+	item.priority = priority
+	heap.Fix(pq, item.index)
+}
+
 func findShortestPath(maze [][]int, start, end Point) ([]Point, error) {
 	rows := len(maze)
 	columns := len(maze[0])
@@ -107,29 +150,26 @@ func findShortestPath(maze [][]int, start, end Point) ([]Point, error) {
 
 	dist[start.x][start.y] = 0
 
-	type Queue struct {
-		point Point
-		cost  int
-	}
+	priorityQueue := &PriorityQueue{}
+	heap.Init(priorityQueue)
+	heap.Push(priorityQueue, &PriorityQueueItem{point: start, priority: 0})
 
-	queue := []Queue{{start, 0}}
+	for priorityQueue.Len() > 0 {
+		currItem := heap.Pop(priorityQueue).(*PriorityQueueItem)
+		curr := currItem.point
 
-	for len(queue) > 0 {
-		curr := queue[0]
-		queue = queue[1:]
-
-		if curr.point == end {
+		if curr == end {
 			break
 		}
 
 		for _, d := range directions {
-			neighbor := Point{curr.point.x + d.x, curr.point.y + d.y}
+			neighbor := Point{curr.x + d.x, curr.y + d.y}
 			if isPointValid(neighbor, rows, columns, maze) {
-				newCost := curr.cost + maze[neighbor.x][neighbor.y]
-				if newCost < dist[neighbor.x][neighbor.y] {
-					dist[neighbor.x][neighbor.y] = newCost
-					prev[neighbor.x][neighbor.y] = curr.point
-					queue = append(queue, Queue{neighbor, newCost})
+				newDist := dist[curr.x][curr.y] + maze[neighbor.x][neighbor.y]
+				if newDist < dist[neighbor.x][neighbor.y] {
+					dist[neighbor.x][neighbor.y] = newDist
+					prev[neighbor.x][neighbor.y] = curr
+					heap.Push(priorityQueue, &PriorityQueueItem{point: neighbor, priority: newDist})
 				}
 			}
 		}
