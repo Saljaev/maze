@@ -75,11 +75,14 @@ func main() {
 	}
 }
 
+// atoi переводит string в int без возвращения ошибки.
 func atoi(s string) int {
 	result, _ := strconv.Atoi(s)
 	return result
 }
 
+// isPointValid проверяет выходят ли координаты Point за границы лабиринта,
+// является ли эта точка доступной (проверка на значение 0).
 func isPointValid(p Point, rows, columns int, maze [][]int) bool {
 	return p.x >= 0 && p.x < rows && p.y >= 0 && p.y < columns && maze[p.x][p.y] != 0
 }
@@ -92,26 +95,31 @@ type PriorityQueueItem struct {
 
 type PriorityQueue []*PriorityQueueItem
 
+// Len возвращает длину очереди.
 func (pq *PriorityQueue) Len() int {
 	return len(*pq)
 }
 
+// Less сравнивает приоритетность i и j элемента.
 func (pq *PriorityQueue) Less(i, j int) bool {
 	return (*pq)[i].priority < (*pq)[j].priority
 }
 
+// Swap меняет местами элементы i и j.
 func (pq *PriorityQueue) Swap(i, j int) {
 	(*pq)[i], (*pq)[j] = (*pq)[j], (*pq)[i]
 	(*pq)[i].index = i
 	(*pq)[j].index = j
 }
 
+// Push добавляет x в очередь.
 func (pq *PriorityQueue) Push(x interface{}) {
 	item := x.(*PriorityQueueItem)
 	item.index = len(*pq)
 	*pq = append(*pq, item)
 }
 
+// Pop достает верхний элемент с очереди.
 func (pq *PriorityQueue) Pop() interface{} {
 	old := *pq
 	n := len(old)
@@ -121,11 +129,15 @@ func (pq *PriorityQueue) Pop() interface{} {
 	return item
 }
 
+// Update обновляет приоритет элемента в очереди.
 func (pq *PriorityQueue) Update(item *PriorityQueueItem, priority int) {
 	item.priority = priority
 	heap.Fix(pq, item.index)
 }
 
+// findShortestPath ищет путь в лабиринте maze от точки start до точки end,
+// использует алгоритм Дейкстры вместе с двоичной кучей.
+// При отсутствии пути возвращает ErrNoPath.
 func findShortestPath(maze [][]int, start, end Point) ([]Point, error) {
 	rows := len(maze)
 	columns := len(maze[0])
