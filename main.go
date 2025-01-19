@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"container/heap"
 	"errors"
-	"fmt"
 	"math"
 	"os"
 	"strconv"
@@ -26,11 +25,12 @@ type Point struct {
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	writer := bufio.NewWriter(os.Stdout)
+	errWriter := bufio.NewWriter(os.Stderr)
 
 	scanner.Scan()
 	mazeSize := strings.Split(scanner.Text(), " ")
 	if len(mazeSize) != 2 {
-		fmt.Fprintln(os.Stderr, ErrInvalidMazeSize)
+		writeError(errWriter, ErrInvalidMazeSize)
 		return
 	}
 
@@ -42,7 +42,7 @@ func main() {
 		scanner.Scan()
 		mazeCells := strings.Fields(scanner.Text())
 		if len(mazeCells) != columns {
-			fmt.Fprintln(os.Stderr, ErrInvalidCellCount)
+			writeError(errWriter, ErrInvalidCellCount)
 			return
 		}
 		maze[i] = make([]int, columns)
@@ -54,7 +54,7 @@ func main() {
 	scanner.Scan()
 	points := strings.Fields(scanner.Text())
 	if len(points) != 4 {
-		fmt.Fprintln(os.Stderr, ErrInvalidPointInput)
+		writeError(errWriter, ErrInvalidPointInput)
 		return
 	}
 
@@ -62,13 +62,13 @@ func main() {
 	endPoint := Point{atoi(points[2]), atoi(points[3])}
 
 	if !isPointValid(startPoint, rows, columns, maze) || !isPointValid(endPoint, rows, columns, maze) {
-		fmt.Fprintln(os.Stderr, ErrUnreachablePoint)
+		writeError(errWriter, ErrUnreachablePoint)
 		return
 	}
 
 	shortestPath, err := findShortestPath(maze, startPoint, endPoint)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		writeError(errWriter, err)
 		return
 	} else {
 		writePath(writer, shortestPath)
@@ -206,5 +206,10 @@ func writePath(writer *bufio.Writer, points []Point) {
 		writer.WriteRune('\n')
 	}
 	writer.WriteRune('.')
+	writer.Flush()
+}
+
+func writeError(writer *bufio.Writer, err error) {
+	writer.Write([]byte(err.Error()))
 	writer.Flush()
 }
